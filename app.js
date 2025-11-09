@@ -124,70 +124,11 @@ class EnvironmentalTracker {
     }
 
     async fetchAirQualityData(lat, lon) {
-        try {
-            const apiKey = document.getElementById('airnowApiKey').value.trim();
-
-            if (!apiKey) {
-                this.airQualityData = {
-                    error: 'API key required',
-                    message: 'Please enter your AirNow API key to view air quality data. Get a free key at docs.airnowapi.org'
-                };
-                return;
-            }
-
-            // AirNow API endpoint for current observations by lat/lon
-            const url = `https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude=${lat}&longitude=${lon}&distance=50&API_KEY=${apiKey}`;
-
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error('Invalid API key. Please check your AirNow API key.');
-                }
-                throw new Error(`AirNow API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data || data.length === 0) {
-                this.airQualityData = {
-                    error: 'No data available',
-                    message: 'No air quality monitoring stations found within 50 miles of this location.'
-                };
-                return;
-            }
-
-            // Process the air quality data
-            this.airQualityData = {
-                observations: data,
-                location: data[0]?.ReportingArea || 'Unknown',
-                stateCode: data[0]?.StateCode || '',
-                dateObserved: data[0]?.DateObserved || '',
-                hourObserved: data[0]?.HourObserved || ''
-            };
-
-            // Find the highest AQI value (worst pollutant)
-            let maxAQI = 0;
-            let primaryPollutant = '';
-
-            data.forEach(observation => {
-                if (observation.AQI > maxAQI) {
-                    maxAQI = observation.AQI;
-                    primaryPollutant = observation.ParameterName;
-                }
-            });
-
-            this.airQualityData.maxAQI = maxAQI;
-            this.airQualityData.primaryPollutant = primaryPollutant;
-            this.airQualityData.category = this.getAQICategory(maxAQI);
-
-        } catch (error) {
-            console.error('Error fetching air quality data:', error);
-            this.airQualityData = {
-                error: error.message,
-                message: 'Unable to fetch air quality data. Please check your API key and try again.'
-            };
-        }
+        // Air quality data requires an API key and is not available in this version
+        this.airQualityData = {
+            error: 'Not available',
+            message: 'Air quality monitoring is not enabled. For air quality data, visit AirNow.gov directly.'
+        };
     }
 
     getAQICategory(aqi) {
@@ -713,13 +654,6 @@ class DataCenterManager {
             return;
         }
 
-        const apiKey = document.getElementById('airnowApiKey').value.trim();
-        if (!apiKey) {
-            if (!confirm('AirNow API key not provided. Air quality data will not be available. Continue?')) {
-                return;
-            }
-        }
-
         // Clear previous results
         this.results.clear();
 
@@ -758,8 +692,8 @@ class DataCenterManager {
 
     async checkDataCenter(dc) {
         try {
-            // Fetch weather data
-            const weatherPromise = fetch(`https://api.weather.gov/points/${dc.lat.toFixed(4)},${dc.lon.toFixed(4)}`)
+            // Fetch weather data only
+            const weatherData = await fetch(`https://api.weather.gov/points/${dc.lat.toFixed(4)},${dc.lon.toFixed(4)}`)
                 .then(r => r.ok ? r.json() : null)
                 .then(data => {
                     if (data) {
@@ -769,16 +703,6 @@ class DataCenterManager {
                     return null;
                 })
                 .catch(() => null);
-
-            // Fetch air quality data if API key provided
-            const apiKey = document.getElementById('airnowApiKey').value.trim();
-            const aqPromise = apiKey
-                ? fetch(`https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude=${dc.lat}&longitude=${dc.lon}&distance=50&API_KEY=${apiKey}`)
-                    .then(r => r.ok ? r.json() : null)
-                    .catch(() => null)
-                : Promise.resolve(null);
-
-            const [weatherData, aqData] = await Promise.all([weatherPromise, aqPromise]);
 
             // Process results
             const result = {
@@ -792,15 +716,11 @@ class DataCenterManager {
                 result.temperature = Math.max(...temps);
             }
 
-            if (aqData && Array.isArray(aqData) && aqData.length > 0) {
-                result.aqi = Math.max(...aqData.map(obs => obs.AQI));
-            }
-
-            // Calculate risk
+            // Calculate risk based on temperature only
             let risk = 'LOW';
-            if (result.temperature > 95 || result.aqi > 150) {
+            if (result.temperature > 95) {
                 risk = 'HIGH';
-            } else if (result.temperature > 85 || result.aqi > 100) {
+            } else if (result.temperature > 85) {
                 risk = 'MODERATE';
             }
             result.risk = risk;

@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <h1>🌡️ U.S. Data Center Environmental Change Tracker</h1>
-            <p class="subtitle">Monitor heat index, air quality, and water quality conditions across the United States</p>
+            <p class="subtitle">Monitor heat index and water quality conditions for data centers across the United States</p>
         </header>
 
         <nav class="nav-tabs">
@@ -27,10 +27,6 @@
             <div class="input-group">
                 <label for="longitude">Longitude:</label>
                 <input type="number" id="longitude" placeholder="e.g., -77.0365" step="0.0001" min="-180" max="180">
-            </div>
-            <div class="input-group">
-                <label for="airnowApiKey">AirNow API Key (optional):</label>
-                <input type="password" id="airnowApiKey" placeholder="Enter your API key from airnowapi.org">
             </div>
             <button id="searchBtn" class="btn-primary">Get Environmental Data</button>
             <button id="currentLocationBtn" class="btn-secondary">Use Current Location</button>
@@ -120,7 +116,6 @@
                 <a href="https://www.epa.gov/waterdata/attains" target="_blank">EPA ATTAINS</a>
             </p>
             <p class="disclaimer">Note: This tool is for informational purposes. Data center operators should consult official sources for operational decisions.</p>
-            <p class="disclaimer">Get your free AirNow API key at <a href="https://docs.airnowapi.org/" target="_blank" style="color: #667eea;">docs.airnowapi.org</a></p>
         </footer>
     </div>
 
