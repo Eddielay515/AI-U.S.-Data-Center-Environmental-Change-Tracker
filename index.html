@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <h1>🌡️ U.S. Data Center Environmental Change Tracker</h1>
-            <p class="subtitle">Monitor heat index and water quality conditions for data centers across the United States</p>
+            <p class="subtitle">Monitor heat index, air quality, carbon emissions, and water conditions for data centers across the United States</p>
         </header>
 
         <nav class="nav-tabs">
@@ -95,6 +95,13 @@
             </div>
 
             <div class="data-section">
+                <h2>⚡ Carbon Emissions Data</h2>
+                <div id="carbonData" class="data-content">
+                    <p class="no-data">No carbon emissions data available</p>
+                </div>
+            </div>
+
+            <div class="data-section">
                 <h2>💧 Water Quality Data</h2>
                 <div id="waterQualityData" class="data-content">
                     <p class="no-data">No water quality data available</p>
@@ -112,10 +119,11 @@
         <footer>
             <p>Data Sources:
                 <a href="https://www.weather.gov/documentation/services-web-api" target="_blank">NOAA Weather.gov API</a> |
-                <a href="https://www.airnow.gov/" target="_blank">AirNow.gov</a> |
+                <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank">Open-Meteo Air Quality API</a> |
+                <a href="https://www.epa.gov/egrid" target="_blank">EPA eGRID</a> |
                 <a href="https://www.epa.gov/waterdata/attains" target="_blank">EPA ATTAINS</a>
             </p>
-            <p class="disclaimer">Note: This tool is for informational purposes. Data center operators should consult official sources for operational decisions.</p>
+            <p class="disclaimer">Note: This tool is for informational purposes. Data center operators should consult official sources for operational decisions. No API keys required.</p>
         </footer>
     </div>
 
