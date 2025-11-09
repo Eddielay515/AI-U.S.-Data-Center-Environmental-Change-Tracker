@@ -590,9 +590,273 @@ class EnvironmentalTracker {
     }
 }
 
+// Data Center Manager Class
+class DataCenterManager {
+    constructor(environmentalTracker) {
+        this.tracker = environmentalTracker;
+        this.dataCenters = DATA_CENTERS || [];
+        this.filteredCenters = this.dataCenters;
+        this.results = new Map();
+        this.initializeEventListeners();
+    }
+
+    initializeEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        });
+
+        // Filters
+        document.getElementById('regionFilter').addEventListener('change', () => this.applyFilters());
+        document.getElementById('operatorFilter').addEventListener('change', () => this.applyFilters());
+
+        // Actions
+        document.getElementById('checkAllDataCenters').addEventListener('click', () => this.checkAllDataCenters());
+        document.getElementById('exportDataCenters').addEventListener('click', () => this.exportResults());
+    }
+
+    switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        const targetTab = tabName === 'custom' ? 'customTab' : 'datacentersTab';
+        document.getElementById(targetTab).classList.add('active');
+    }
+
+    applyFilters() {
+        const regionFilter = document.getElementById('regionFilter').value;
+        const operatorFilter = document.getElementById('operatorFilter').value;
+
+        this.filteredCenters = this.dataCenters.filter(dc => {
+            const matchesRegion = regionFilter === 'all' || dc.region === regionFilter;
+            const matchesOperator = operatorFilter === 'all' || dc.operator.includes(operatorFilter);
+            return matchesRegion && matchesOperator;
+        });
+
+        this.displayDataCenters();
+    }
+
+    displayDataCenters() {
+        const container = document.getElementById('dataCenterList');
+
+        if (this.filteredCenters.length === 0) {
+            container.innerHTML = '<p class="no-data">No data centers match the selected filters</p>';
+            return;
+        }
+
+        let html = `<p style="margin-bottom: 20px; color: #666;">${this.filteredCenters.length} data centers found</p>`;
+
+        this.filteredCenters.forEach(dc => {
+            const result = this.results.get(dc.id);
+
+            html += `
+                <div class="datacenter-card" data-id="${dc.id}">
+                    <div class="datacenter-header">
+                        <div class="datacenter-title">
+                            <div class="datacenter-name">${dc.name}</div>
+                            <div class="datacenter-location">${dc.city}, ${dc.state} - ${dc.region}</div>
+                        </div>
+                        <span class="datacenter-operator">${dc.operator}</span>
+                    </div>
+
+                    <div class="datacenter-info">
+                        <div class="info-item"><strong>Type:</strong> ${dc.type}</div>
+                        ${dc.capacity ? `<div class="info-item"><strong>Capacity:</strong> ${dc.capacity}</div>` : ''}
+                        ${dc.significance ? `<div class="info-item"><strong>Note:</strong> ${dc.significance}</div>` : ''}
+                        <div class="info-item"><strong>Coordinates:</strong> ${dc.lat.toFixed(4)}, ${dc.lon.toFixed(4)}</div>
+                    </div>
+
+                    <div class="datacenter-status" id="status-${dc.id}">
+                        ${result ? this.renderStatus(result) : '<span class="status-badge loading">Not checked</span>'}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    renderStatus(result) {
+        let html = '';
+
+        // Temperature status
+        if (result.temperature !== undefined) {
+            const tempClass = result.temperature > 95 ? 'high' : result.temperature > 85 ? 'moderate' : 'good';
+            html += `<span class="status-badge ${tempClass}">🌡️ ${result.temperature}°F</span>`;
+        }
+
+        // AQI status
+        if (result.aqi !== undefined) {
+            const aqiClass = result.aqi > 150 ? 'high' : result.aqi > 100 ? 'moderate' : 'good';
+            html += `<span class="status-badge ${aqiClass}">🌬️ AQI ${result.aqi}</span>`;
+        }
+
+        // Overall risk
+        if (result.risk) {
+            const riskClass = result.risk === 'HIGH' ? 'high' : result.risk === 'MODERATE' ? 'moderate' : 'good';
+            html += `<span class="status-badge ${riskClass}">Risk: ${result.risk}</span>`;
+        }
+
+        return html || '<span class="status-badge loading">Loading...</span>';
+    }
+
+    async checkAllDataCenters() {
+        if (this.filteredCenters.length === 0) {
+            alert('Please select data centers using the filters');
+            return;
+        }
+
+        const apiKey = document.getElementById('airnowApiKey').value.trim();
+        if (!apiKey) {
+            if (!confirm('AirNow API key not provided. Air quality data will not be available. Continue?')) {
+                return;
+            }
+        }
+
+        // Clear previous results
+        this.results.clear();
+
+        // Show loading state
+        this.displayDataCenters();
+
+        const btn = document.getElementById('checkAllDataCenters');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Checking data centers...';
+
+        try {
+            // Check centers in batches to avoid overwhelming the APIs
+            const batchSize = 5;
+            for (let i = 0; i < this.filteredCenters.length; i += batchSize) {
+                const batch = this.filteredCenters.slice(i, i + batchSize);
+                await Promise.all(batch.map(dc => this.checkDataCenter(dc)));
+
+                // Update progress
+                btn.textContent = `Checking... ${Math.min(i + batchSize, this.filteredCenters.length)}/${this.filteredCenters.length}`;
+            }
+
+            btn.textContent = 'Check Complete!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error checking data centers:', error);
+            alert('Error checking data centers. Please try again.');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async checkDataCenter(dc) {
+        try {
+            // Fetch weather data
+            const weatherPromise = fetch(`https://api.weather.gov/points/${dc.lat.toFixed(4)},${dc.lon.toFixed(4)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data) {
+                        return fetch(data.properties.forecast)
+                            .then(r => r.ok ? r.json() : null);
+                    }
+                    return null;
+                })
+                .catch(() => null);
+
+            // Fetch air quality data if API key provided
+            const apiKey = document.getElementById('airnowApiKey').value.trim();
+            const aqPromise = apiKey
+                ? fetch(`https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude=${dc.lat}&longitude=${dc.lon}&distance=50&API_KEY=${apiKey}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .catch(() => null)
+                : Promise.resolve(null);
+
+            const [weatherData, aqData] = await Promise.all([weatherPromise, aqPromise]);
+
+            // Process results
+            const result = {
+                id: dc.id,
+                name: dc.name,
+                location: `${dc.city}, ${dc.state}`
+            };
+
+            if (weatherData && weatherData.properties && weatherData.properties.periods) {
+                const temps = weatherData.properties.periods.slice(0, 5).map(p => p.temperature);
+                result.temperature = Math.max(...temps);
+            }
+
+            if (aqData && Array.isArray(aqData) && aqData.length > 0) {
+                result.aqi = Math.max(...aqData.map(obs => obs.AQI));
+            }
+
+            // Calculate risk
+            let risk = 'LOW';
+            if (result.temperature > 95 || result.aqi > 150) {
+                risk = 'HIGH';
+            } else if (result.temperature > 85 || result.aqi > 100) {
+                risk = 'MODERATE';
+            }
+            result.risk = risk;
+
+            // Store and update display
+            this.results.set(dc.id, result);
+            this.updateDataCenterStatus(dc.id, result);
+
+        } catch (error) {
+            console.error(`Error checking data center ${dc.name}:`, error);
+        }
+    }
+
+    updateDataCenterStatus(id, result) {
+        const statusContainer = document.getElementById(`status-${id}`);
+        if (statusContainer) {
+            statusContainer.innerHTML = this.renderStatus(result);
+        }
+    }
+
+    exportResults() {
+        if (this.results.size === 0) {
+            alert('No data to export. Please check data centers first.');
+            return;
+        }
+
+        const exportData = Array.from(this.results.values()).map(r => ({
+            'Data Center': r.name,
+            'Location': r.location,
+            'Temperature (°F)': r.temperature || 'N/A',
+            'AQI': r.aqi || 'N/A',
+            'Risk Level': r.risk
+        }));
+
+        // Convert to CSV
+        const headers = Object.keys(exportData[0]);
+        const csv = [
+            headers.join(','),
+            ...exportData.map(row => headers.map(h => row[h]).join(','))
+        ].join('\n');
+
+        // Download
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `datacenter-environmental-report-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+}
+
 // Initialize the application when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new EnvironmentalTracker();
+    const envTracker = new EnvironmentalTracker();
+    const dcManager = new DataCenterManager(envTracker);
 
     // Set default location (Washington, DC)
     document.getElementById('latitude').value = '38.9072';

@@ -13,7 +13,13 @@
             <p class="subtitle">Monitor heat index, air quality, and water quality conditions across the United States</p>
         </header>
 
-        <div class="search-section">
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="custom">Custom Location</button>
+            <button class="tab-btn" data-tab="datacenters">Data Center List</button>
+        </nav>
+
+        <div id="customTab" class="tab-content active">
+            <div class="search-section">
             <div class="input-group">
                 <label for="latitude">Latitude:</label>
                 <input type="number" id="latitude" placeholder="e.g., 38.8977" step="0.0001" min="-90" max="90">
@@ -28,6 +34,46 @@
             </div>
             <button id="searchBtn" class="btn-primary">Get Environmental Data</button>
             <button id="currentLocationBtn" class="btn-secondary">Use Current Location</button>
+            </div>
+        </div>
+
+        <div id="datacentersTab" class="tab-content">
+            <div class="datacenter-controls">
+                <div class="input-group">
+                    <label for="regionFilter">Filter by Region:</label>
+                    <select id="regionFilter">
+                        <option value="all">All Regions</option>
+                        <option value="Northern Virginia">Northern Virginia</option>
+                        <option value="West Coast">West Coast</option>
+                        <option value="Pacific Northwest">Pacific Northwest</option>
+                        <option value="Midwest">Midwest</option>
+                        <option value="Southwest">Southwest</option>
+                        <option value="South Central">South Central</option>
+                        <option value="Southeast">Southeast</option>
+                        <option value="Mid-Atlantic">Mid-Atlantic</option>
+                        <option value="Northeast">Northeast</option>
+                        <option value="Mountain West">Mountain West</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="operatorFilter">Filter by Operator:</label>
+                    <select id="operatorFilter">
+                        <option value="all">All Operators</option>
+                        <option value="Google">Google</option>
+                        <option value="Microsoft">Microsoft Azure</option>
+                        <option value="Amazon">Amazon AWS</option>
+                        <option value="Meta">Meta (Facebook)</option>
+                        <option value="Multiple">Multiple Providers</option>
+                        <option value="Federal">Department of Energy</option>
+                    </select>
+                </div>
+                <button id="checkAllDataCenters" class="btn-primary">Check All Data Centers</button>
+                <button id="exportDataCenters" class="btn-secondary">Export Results</button>
+            </div>
+
+            <div id="dataCenterList" class="datacenter-list">
+                <p class="no-data">Select filters and click "Check All Data Centers" to begin monitoring</p>
+            </div>
         </div>
 
         <div id="loadingIndicator" class="loading hidden">
@@ -78,6 +124,7 @@
         </footer>
     </div>
 
+    <script src="datacenters.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

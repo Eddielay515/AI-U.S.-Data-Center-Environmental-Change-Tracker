@@ -8,18 +8,32 @@ This tool helps data center operators and facilities managers assess environment
 - **Heat Index**: Real-time temperature and weather forecasts from NOAA's Weather.gov API
 - **Air Quality**: Current Air Quality Index (AQI) and pollutant levels from AirNow.gov
 - **Water Quality**: Information from EPA's water quality monitoring systems
+- **Data Center Tracking**: Monitor 30+ major AI and hyperscale data centers across the United States
 - **Risk Assessment**: Automated evaluation of environmental impact on data center operations
 
 ## 🚀 Features
 
+### Environmental Monitoring
 - **Real-time Weather Data**: Access to NOAA's latest heat index and temperature forecasts
 - **Air Quality Monitoring**: Live AQI data with color-coded categories (Good, Moderate, Unhealthy, etc.)
 - **Pollutant Tracking**: Monitor specific pollutants including PM2.5, PM10, Ozone, and more
 - **EPA Water Quality Integration**: Links to detailed water quality data via EPA's How's My Waterway
 - **Location-Based Search**: Search by coordinates or use your current location
 - **Risk Assessment**: Automated environmental impact analysis for data center operations
+
+### Data Center Tracking
+- **30+ Major Data Centers**: Pre-configured database of AI and hyperscale facilities
+- **Company Coverage**: Google, Microsoft Azure, Amazon AWS, Meta, and DOE federal sites
+- **Geographic Regions**: Coverage across all major U.S. data center markets
+- **Batch Monitoring**: Check environmental conditions for multiple data centers simultaneously
+- **Smart Filtering**: Filter by region (Northern Virginia, West Coast, etc.) or operator
+- **Live Status Updates**: Real-time temperature, AQI, and risk level for each facility
+- **CSV Export**: Download comprehensive environmental reports for all monitored sites
+
+### User Experience
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **Interactive UI**: Clean, modern interface with visual risk indicators
+- **Tabbed Interface**: Switch between custom location search and data center list view
 
 ## 🛠️ Technology Stack
 
@@ -79,6 +93,30 @@ This tool helps data center operators and facilities managers assess environment
 2. Allow browser location access when prompted
 3. Data will be automatically fetched for your location
 
+### Monitoring Data Centers
+
+1. Click the **"Data Center List"** tab at the top of the page
+2. Use the filters to select data centers:
+   - **Region Filter**: Choose from Northern Virginia, West Coast, Pacific Northwest, etc.
+   - **Operator Filter**: Select Google, Microsoft, Amazon, Meta, or other operators
+3. Click **"Check All Data Centers"** to begin monitoring
+   - The system will check environmental conditions in batches of 5
+   - Progress will be displayed during the check
+   - Results update in real-time for each data center
+4. View the results:
+   - **Temperature**: Maximum forecasted temperature (next 5 periods)
+   - **AQI**: Current Air Quality Index
+   - **Risk Level**: Overall environmental risk (LOW/MODERATE/HIGH)
+5. Click **"Export Results"** to download a CSV report
+
+**Featured Data Centers Include:**
+- **Ashburn, VA**: Data Center Capital of the World (AWS, Microsoft, Google, Meta)
+- **Google Council Bluffs, IA**: Large hyperscale facility
+- **Microsoft Quincy, WA**: Pacific Northwest hyperscale center
+- **Meta Prineville, OR**: Major Facebook data center
+- **DOE Argonne National Laboratory, IL**: Planned 1000 MW AI data park
+- And 25+ more across the United States
+
 ### Example Locations
 
 - **Washington, DC**: Latitude `38.9072`, Longitude `-77.0369`
@@ -137,9 +175,10 @@ The application evaluates environmental conditions based on:
 
 ```
 AI-U.S.-Data-Center-Environmental-Change-Tracker/
-├── index.html          # Main HTML page
-├── styles.css          # Styling and responsive design
-├── app.js              # Application logic and API integration
+├── index.html          # Main HTML page with tabs and data center list
+├── styles.css          # Styling, responsive design, and data center cards
+├── app.js              # Application logic, API integration, and DataCenterManager
+├── datacenters.js      # Database of 30+ major AI/hyperscale data centers
 ├── README.md           # This file
 └── .gitignore          # Git ignore rules
 ```
@@ -154,7 +193,7 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
 
 ### Key JavaScript Classes
 
-- `EnvironmentalTracker`: Main application class
+- `EnvironmentalTracker`: Main application class for custom location monitoring
   - `fetchHeatIndexData()`: Retrieves NOAA weather data
   - `fetchAirQualityData()`: Fetches AirNow AQI and pollutant data
   - `fetchWaterQualityData()`: Accesses EPA water quality information
@@ -162,6 +201,14 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
   - `displayAirQualityData()`: Shows AQI with color-coded categories
   - `displayImpactAssessment()`: Calculates and shows risk levels
   - `getAQICategory()`: Determines AQI category and health message
+
+- `DataCenterManager`: Data center monitoring and tracking class
+  - `applyFilters()`: Filters data centers by region and operator
+  - `displayDataCenters()`: Renders data center cards with status
+  - `checkAllDataCenters()`: Batch checks environmental conditions
+  - `checkDataCenter()`: Fetches weather and AQI for a single facility
+  - `exportResults()`: Generates CSV report of monitoring results
+  - `switchTab()`: Handles tab navigation between custom and data center views
 
 ## 🌐 API Integration Details
 
