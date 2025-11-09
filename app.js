@@ -2,6 +2,7 @@
 class EnvironmentalTracker {
     constructor() {
         this.heatIndexData = null;
+        this.airQualityData = null;
         this.waterQualityData = null;
         this.initializeEventListeners();
     }
@@ -57,9 +58,10 @@ class EnvironmentalTracker {
         this.showLoading();
 
         try {
-            // Fetch both data sources in parallel
+            // Fetch all data sources in parallel
             await Promise.all([
                 this.fetchHeatIndexData(lat, lon),
+                this.fetchAirQualityData(lat, lon),
                 this.fetchWaterQualityData(lat, lon)
             ]);
 
@@ -121,6 +123,89 @@ class EnvironmentalTracker {
         }
     }
 
+    async fetchAirQualityData(lat, lon) {
+        try {
+            const apiKey = document.getElementById('airnowApiKey').value.trim();
+
+            if (!apiKey) {
+                this.airQualityData = {
+                    error: 'API key required',
+                    message: 'Please enter your AirNow API key to view air quality data. Get a free key at docs.airnowapi.org'
+                };
+                return;
+            }
+
+            // AirNow API endpoint for current observations by lat/lon
+            const url = `https://www.airnowapi.org/aq/observation/latLong/current/?format=application/json&latitude=${lat}&longitude=${lon}&distance=50&API_KEY=${apiKey}`;
+
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('Invalid API key. Please check your AirNow API key.');
+                }
+                throw new Error(`AirNow API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                this.airQualityData = {
+                    error: 'No data available',
+                    message: 'No air quality monitoring stations found within 50 miles of this location.'
+                };
+                return;
+            }
+
+            // Process the air quality data
+            this.airQualityData = {
+                observations: data,
+                location: data[0]?.ReportingArea || 'Unknown',
+                stateCode: data[0]?.StateCode || '',
+                dateObserved: data[0]?.DateObserved || '',
+                hourObserved: data[0]?.HourObserved || ''
+            };
+
+            // Find the highest AQI value (worst pollutant)
+            let maxAQI = 0;
+            let primaryPollutant = '';
+
+            data.forEach(observation => {
+                if (observation.AQI > maxAQI) {
+                    maxAQI = observation.AQI;
+                    primaryPollutant = observation.ParameterName;
+                }
+            });
+
+            this.airQualityData.maxAQI = maxAQI;
+            this.airQualityData.primaryPollutant = primaryPollutant;
+            this.airQualityData.category = this.getAQICategory(maxAQI);
+
+        } catch (error) {
+            console.error('Error fetching air quality data:', error);
+            this.airQualityData = {
+                error: error.message,
+                message: 'Unable to fetch air quality data. Please check your API key and try again.'
+            };
+        }
+    }
+
+    getAQICategory(aqi) {
+        if (aqi <= 50) {
+            return { name: 'Good', color: '#00e400', healthMessage: 'Air quality is satisfactory, and air pollution poses little or no risk.' };
+        } else if (aqi <= 100) {
+            return { name: 'Moderate', color: '#ffff00', healthMessage: 'Air quality is acceptable. However, there may be a risk for some people, particularly those who are unusually sensitive to air pollution.' };
+        } else if (aqi <= 150) {
+            return { name: 'Unhealthy for Sensitive Groups', color: '#ff7e00', healthMessage: 'Members of sensitive groups may experience health effects. The general public is less likely to be affected.' };
+        } else if (aqi <= 200) {
+            return { name: 'Unhealthy', color: '#ff0000', healthMessage: 'Some members of the general public may experience health effects; members of sensitive groups may experience more serious health effects.' };
+        } else if (aqi <= 300) {
+            return { name: 'Very Unhealthy', color: '#8f3f97', healthMessage: 'Health alert: The risk of health effects is increased for everyone.' };
+        } else {
+            return { name: 'Hazardous', color: '#7e0023', healthMessage: 'Health warning of emergency conditions: everyone is more likely to be affected.' };
+        }
+    }
+
     async fetchWaterQualityData(lat, lon) {
         try {
             // Using EPA ATTAINS API to get water quality data near the coordinates
@@ -167,6 +252,7 @@ class EnvironmentalTracker {
         document.getElementById('results').classList.remove('hidden');
 
         this.displayHeatIndexData();
+        this.displayAirQualityData();
         this.displayWaterQualityData();
         this.displayImpactAssessment();
     }
@@ -242,6 +328,91 @@ class EnvironmentalTracker {
                 <div class="good">
                     <strong>✓ Normal Conditions:</strong> Temperature within acceptable range for
                     optimal data center operations.
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+
+    displayAirQualityData() {
+        const container = document.getElementById('airQualityData');
+
+        if (!this.airQualityData || this.airQualityData.error) {
+            const message = this.airQualityData?.message || 'No air quality data available';
+            container.innerHTML = `
+                <div class="warning">
+                    <strong>Note:</strong> ${message}
+                </div>
+            `;
+            return;
+        }
+
+        const aqi = this.airQualityData.maxAQI;
+        const category = this.airQualityData.category;
+
+        let html = `
+            <div class="data-item">
+                <strong>Location:</strong> ${this.airQualityData.location}, ${this.airQualityData.stateCode}
+            </div>
+            <div class="data-item">
+                <strong>Last Updated:</strong> ${this.airQualityData.dateObserved} at ${this.airQualityData.hourObserved}:00
+            </div>
+
+            <div class="aqi-display" style="background: ${category.color}; color: ${aqi <= 100 ? '#000' : '#fff'}; padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                <div style="font-size: 1.2em; font-weight: 600; margin-bottom: 10px;">Air Quality Index (AQI)</div>
+                <div style="font-size: 3.5em; font-weight: 700; margin: 10px 0;">${aqi}</div>
+                <div style="font-size: 1.5em; font-weight: 600; margin-bottom: 10px;">${category.name}</div>
+                <div style="font-size: 0.95em; margin-top: 15px; line-height: 1.6;">${category.healthMessage}</div>
+            </div>
+
+            <div class="data-item">
+                <strong>Primary Pollutant:</strong> ${this.airQualityData.primaryPollutant}
+            </div>
+        `;
+
+        // Display all pollutant readings
+        if (this.airQualityData.observations && this.airQualityData.observations.length > 0) {
+            html += '<div class="data-item" style="margin-top: 20px;"><strong>Pollutant Readings:</strong><div class="metric-grid" style="margin-top: 15px;">';
+
+            this.airQualityData.observations.forEach(obs => {
+                const obsCategory = this.getAQICategory(obs.AQI);
+                html += `
+                    <div class="metric-card" style="border-left: 4px solid ${obsCategory.color};">
+                        <div class="metric-label">${obs.ParameterName}</div>
+                        <div class="metric-value" style="color: ${obsCategory.color};">${obs.AQI}</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">${obsCategory.name}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+        }
+
+        // Add data center impact warnings based on AQI
+        if (aqi > 100) {
+            html += `
+                <div class="alert">
+                    <strong>⚠️ Air Quality Alert for Data Centers:</strong>
+                    Poor air quality may affect air filtration systems and increase the risk of
+                    particulate contamination in cooling systems. Monitor air intake filters and
+                    consider increasing filtration or switching to recirculated air if possible.
+                </div>
+            `;
+        } else if (aqi > 50) {
+            html += `
+                <div class="warning">
+                    <strong>⚡ Air Quality Notice:</strong>
+                    Moderate air quality detected. Ensure air filtration systems are functioning
+                    properly to prevent dust and particulate buildup in data center equipment.
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="good">
+                    <strong>✓ Good Air Quality:</strong>
+                    Air quality is within optimal range for data center operations.
+                    Standard filtration procedures are sufficient.
                 </div>
             `;
         }
@@ -335,6 +506,33 @@ class EnvironmentalTracker {
             }
         }
 
+        // Assess air quality impact
+        if (this.airQualityData && this.airQualityData.maxAQI) {
+            const aqi = this.airQualityData.maxAQI;
+
+            if (aqi > 150) {
+                // Unhealthy or worse - upgrade to HIGH risk
+                if (riskLevel !== 'HIGH') {
+                    riskLevel = 'HIGH';
+                    riskColor = '#dc3545';
+                }
+                recommendations.push('Switch to recirculated air mode if possible to minimize outdoor air intake');
+                recommendations.push('Increase air filter inspection frequency');
+                recommendations.push('Monitor equipment for particulate contamination');
+            } else if (aqi > 100) {
+                // Unhealthy for sensitive groups - upgrade to at least MODERATE
+                if (riskLevel === 'LOW') {
+                    riskLevel = 'MODERATE';
+                    riskColor = '#ffc107';
+                }
+                recommendations.push('Inspect and replace air filters as needed');
+                recommendations.push('Monitor air intake systems for increased particulate levels');
+            } else if (aqi > 50) {
+                // Moderate air quality
+                recommendations.push('Ensure air filtration systems are operating properly');
+            }
+        }
+
         // Add water-related recommendations
         recommendations.push('Ensure adequate water supply for cooling systems');
         recommendations.push('Monitor water quality to prevent equipment damage');
@@ -358,6 +556,8 @@ class EnvironmentalTracker {
                 <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
                     <li>Data center inlet temperature (recommended: 64.4-80.6°F / 18-27°C)</li>
                     <li>Humidity levels (recommended: 40-60% relative humidity)</li>
+                    <li>Air Quality Index (AQI) - target < 50 for optimal conditions</li>
+                    <li>Air filter differential pressure and replacement schedule</li>
                     <li>Power Usage Effectiveness (PUE) - target < 1.5</li>
                     <li>Water consumption rate and availability</li>
                     <li>Cooling system efficiency</li>

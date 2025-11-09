@@ -1,17 +1,20 @@
 # 🌡️ U.S. Data Center Environmental Change Tracker
 
-A web application that monitors environmental conditions affecting data center operations by integrating real-time heat index data from NOAA and water quality information from the EPA.
+A web application that monitors environmental conditions affecting data center operations by integrating real-time heat index data from NOAA, air quality data from AirNow.gov, and water quality information from the EPA.
 
 ## 📋 Overview
 
 This tool helps data center operators and facilities managers assess environmental risks by tracking:
 - **Heat Index**: Real-time temperature and weather forecasts from NOAA's Weather.gov API
+- **Air Quality**: Current Air Quality Index (AQI) and pollutant levels from AirNow.gov
 - **Water Quality**: Information from EPA's water quality monitoring systems
 - **Risk Assessment**: Automated evaluation of environmental impact on data center operations
 
 ## 🚀 Features
 
 - **Real-time Weather Data**: Access to NOAA's latest heat index and temperature forecasts
+- **Air Quality Monitoring**: Live AQI data with color-coded categories (Good, Moderate, Unhealthy, etc.)
+- **Pollutant Tracking**: Monitor specific pollutants including PM2.5, PM10, Ozone, and more
 - **EPA Water Quality Integration**: Links to detailed water quality data via EPA's How's My Waterway
 - **Location-Based Search**: Search by coordinates or use your current location
 - **Risk Assessment**: Automated environmental impact analysis for data center operations
@@ -23,6 +26,7 @@ This tool helps data center operators and facilities managers assess environment
 - **Frontend**: Pure HTML5, CSS3, JavaScript (ES6+)
 - **APIs**:
   - NOAA Weather.gov API (api.weather.gov)
+  - AirNow.gov API (airnowapi.org)
   - EPA ATTAINS Water Quality Services
 - **No Backend Required**: Runs entirely in the browser
 
@@ -32,6 +36,8 @@ This tool helps data center operators and facilities managers assess environment
 
 - A modern web browser (Chrome, Firefox, Safari, Edge)
 - Internet connection for API access
+- AirNow API key (free) - Get yours at [docs.airnowapi.org](https://docs.airnowapi.org/)
+  - Optional but recommended for air quality data
 
 ### Quick Start
 
@@ -54,11 +60,18 @@ This tool helps data center operators and facilities managers assess environment
 
 ## 📖 Usage
 
+### Setting Up Air Quality Data
+
+1. Get a free API key from [docs.airnowapi.org](https://docs.airnowapi.org/)
+2. Enter your API key in the "AirNow API Key" field (optional but recommended)
+3. The API key will be used for this session only and is not stored
+
 ### Searching by Coordinates
 
 1. Enter latitude and longitude values in the input fields
-2. Click "Get Environmental Data" to fetch information
-3. View heat index, water quality, and risk assessment results
+2. (Optional) Enter your AirNow API key to enable air quality data
+3. Click "Get Environmental Data" to fetch information
+4. View heat index, air quality, water quality, and risk assessment results
 
 ### Using Current Location
 
@@ -81,6 +94,15 @@ This tool helps data center operators and facilities managers assess environment
 - API Documentation: https://www.weather.gov/documentation/services-web-api
 - No API key required
 
+### AirNow.gov API
+
+- Real-time Air Quality Index (AQI) data from over 2,500 monitoring stations
+- Tracks major pollutants: PM2.5, PM10, Ozone, CO, SO2, NO2
+- Color-coded AQI categories from Good (0-50) to Hazardous (301+)
+- API Documentation: https://docs.airnowapi.org/
+- Free API key required (500 requests/hour limit)
+- Updated hourly with current observations
+
 ### EPA Water Quality Data
 
 - ATTAINS (Assessment, TMDL Tracking and Implementation System)
@@ -97,8 +119,16 @@ The application evaluates environmental conditions based on:
 - **MODERATE RISK** (85-95°F): Increased monitoring recommended
 - **LOW RISK** (<85°F): Normal operating conditions
 
+### Air Quality Thresholds
+- **GOOD** (0-50 AQI): Optimal for data center operations
+- **MODERATE** (51-100 AQI): Monitor air filtration systems
+- **UNHEALTHY FOR SENSITIVE GROUPS** (101-150 AQI): Increase filter inspections
+- **UNHEALTHY** (151-200 AQI): Upgrade to HIGH risk, consider recirculated air
+- **VERY UNHEALTHY/HAZARDOUS** (201+ AQI): Critical air quality conditions
+
 ### Data Center Considerations
 - Cooling system efficiency
+- Air filtration and particulate contamination
 - Power Usage Effectiveness (PUE)
 - Water availability for cooling
 - HVAC load management
@@ -126,9 +156,12 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
 
 - `EnvironmentalTracker`: Main application class
   - `fetchHeatIndexData()`: Retrieves NOAA weather data
+  - `fetchAirQualityData()`: Fetches AirNow AQI and pollutant data
   - `fetchWaterQualityData()`: Accesses EPA water quality information
   - `displayResults()`: Renders data to the UI
+  - `displayAirQualityData()`: Shows AQI with color-coded categories
   - `displayImpactAssessment()`: Calculates and shows risk levels
+  - `getAQICategory()`: Determines AQI category and health message
 
 ## 🌐 API Integration Details
 
@@ -139,6 +172,15 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
 3. Fetch forecast data from grid-specific endpoint
 4. Parse temperature, heat index, and forecast periods
 
+### AirNow API Flow
+
+1. User provides API key in the interface
+2. Request current observations: `GET /aq/observation/latLong/current/`
+3. Parameters: latitude, longitude, distance (50 miles), API key
+4. Parse AQI values for all pollutants (PM2.5, PM10, O3, etc.)
+5. Determine highest AQI (primary pollutant) and category
+6. Display color-coded results with health messages
+
 ### EPA Water Quality Flow
 
 1. Provides links to EPA's How's My Waterway
@@ -147,15 +189,17 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
 
 ## ⚠️ Limitations
 
-- EPA water quality data requires visiting How's My Waterway website for detailed information
-- NOAA data is limited to U.S. locations
-- API rate limits may apply (NOAA Weather.gov is generally unlimited for reasonable use)
-- Browser geolocation requires HTTPS in production environments
+- **AirNow API**: Requires free API key registration (500 requests/hour limit)
+- **EPA water quality data**: Requires visiting How's My Waterway website for detailed information
+- **Geographic coverage**: NOAA and AirNow data limited to U.S. locations
+- **Data availability**: AirNow monitoring stations may not be available in all areas (50-mile search radius)
+- **Browser requirements**: Geolocation requires HTTPS in production environments
 
 ## 🔐 Privacy & Security
 
 - No user data is stored or transmitted to third parties
 - All API calls are made directly from the browser
+- AirNow API key is used in-session only and not stored permanently
 - Location data is only used for API queries and not persisted
 - No authentication or user accounts required
 
@@ -165,6 +209,9 @@ AI-U.S.-Data-Center-Environmental-Change-Tracker/
 
 - **Temperature**: Maintain inlet temperatures between 64.4-80.6°F (18-27°C)
 - **Humidity**: Keep relative humidity between 40-60%
+- **Air Quality**: Target AQI below 50 for optimal conditions
+- **Air Filtration**: Monitor filter differential pressure and replacement schedules
+- **Particulate Levels**: Track dust and particulate contamination in cooling systems
 - **PUE**: Target Power Usage Effectiveness below 1.5
 - **Water Quality**: Monitor for scaling and corrosion indicators
 - **Cooling Efficiency**: Track chiller performance and efficiency metrics
